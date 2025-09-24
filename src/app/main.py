@@ -89,9 +89,28 @@ class TransactionSchema(BaseModel):
         #* Faz a manipulação de dados para JSON
         orm_mode = True
 
+# ==================================================== #  
 ### =============== Endpoints da API =============== ###
+# ==================================================== # 
 
 ## === Endpoints para o recurso 'User' === ##
+
+#* Define o Endpoint para pegar as informações de todos usuarios (GET)
+@app.get("/api/users/", response_model=List[UserSchema])
+def get_user(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    if not users:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Users not founded")
+    return users
+
+#* Define o Endpoint para pegar as informações de 1 User (GET)
+@app.get("/api/users/{user_id}/", response_model=UserSchema)
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
+    return user
+
 
 #* Define o Endpoint da criação de User (POST)
 @app.post("/api/users/", response_model=UserSchema)
@@ -107,15 +126,17 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user) # Atualiza o Usuario criado no Banco
     return db_user # Retorna o objeto para a FastAPI
 
-#* Define o Endpoint para pegar as informações de 1 User (GET)
-@app.get("/api/users/{user_id}/", response_model=UserSchema)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+@app.delete("/api/users/{user_id}/")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
-    
-    return user
-
+    db.delete(user) # Deleta a informação
+    db.commit() # Salva no banco
+    return {
+        "message": "User successfully deleted.",
+        "user": user_id
+    }
 
 ## === Endpoints para o recurso 'Transaction' === ##
 
@@ -129,31 +150,40 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
     db.refresh(db_transaction) # Atualiza a transação criada no Banco
     return db_transaction # Retorna o objeto para a FastAPI
 
-
 #* Define o Endpoint para pegar as informações de 1 User (GET)
 @app.get("/api/users/{user_id}/transactions/", response_model=List[TransactionSchema])
 def get_transactions_for_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).first() # Valida se o user_id é igual ao User.id do banco
     if not user:
+        # Se caso user não ser encontrado retorna um erro
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
-
     transactions = db.query(Transaction).filter(Transaction.owner_id == user_id).all()
+    # Valida se o transaction_id é igual ao Transaction.id do banco
     return transactions
 
+#* Define o Endpoint para deletar uma transação de um usuario (DELETE)
 @app.delete("/api/users/{user_id}/transactions/{transaction_id}/")
 def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(get_db)):
-    del_transaction = db.query(Transaction).filter(Transaction.owner_id == user_id, Transaction.id == transaction_id).first()
+    # Filtra a query do banco pelo id do usuario e id de transação igual ao do Banco.
+    del_transaction = db.query(Transaction).filter(
+        Transaction.owner_id == user_id, 
+        Transaction.id == transaction_id
+        ).first()
 
-    if not user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
+    if not del_transaction:
+        # Se caso algum dos id's não ser encontrado retorna um erro
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Transaction not found or does not belong to the specified user."
+        )
     
-    db.delete(del_transaction)
-    db.commit()
+    db.delete(del_transaction) # Deleta a informação
+    db.commit() # Salva no banco
 
     return {
         "message": " Transaction successfully deleted.",
-        "user": {user_id},
-        "transaction": {transaction_id}
+        "user": user_id,
+        "transaction": transaction_id
     }
 
 
@@ -167,9 +197,8 @@ TODO
 
 TODO
 -> Endpoints (DELETE)
-- Deletar transação
-- Remover usuario
--
+- Deletar transação ✅
+- Remover usuario ✅
 
-
+http://localhost:8002/api/users/1/transactions/1/
 """
