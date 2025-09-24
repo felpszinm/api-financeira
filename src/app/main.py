@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
@@ -91,15 +91,15 @@ class TransactionSchema(BaseModel):
 
 ### =============== Endpoints da API =============== ###
 
+## === Endpoints para o recurso 'User' === ##
+
 #* Define o Endpoint da criação de User (POST)
 @app.post("/api/users/", response_model=UserSchema)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    
     # Verifica se o usuario ja existe no banco através do email.
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-
     # Criando um novo user
     db_user = User(name=user.name, email=user.email)
     db.add(db_user) # Adiciona user ao banco
@@ -107,8 +107,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user) # Atualiza o Usuario criado no Banco
     return db_user # Retorna o objeto para a FastAPI
 
-#* Define o Endpoint para pegar as transações de um usuario por ID (GET)
-@app.get("/api/users/{user_id}/transactions/", response_model=TransactionSchema)
+#* Define o Endpoint para pegar as informações de 1 User (GET)
+@app.get("/api/users/{user_id}/", response_model=UserSchema)
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
+    
+    return user
+
+
+## === Endpoints para o recurso 'Transaction' === ##
+
+#* Define o Endpoint para criar uma nova transação
+@app.post("/api/users/{user_id}/transactions/", response_model=TransactionSchema)
 def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db)):
     # Criando uma nova transação
     db_transaction = Transaction(description=transaction.description, amount=transaction.amount, owner_id=transaction.owner_id)
@@ -116,3 +128,48 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
     db.commit() # Salva os dados da transação no banco
     db.refresh(db_transaction) # Atualiza a transação criada no Banco
     return db_transaction # Retorna o objeto para a FastAPI
+
+
+#* Define o Endpoint para pegar as informações de 1 User (GET)
+@app.get("/api/users/{user_id}/transactions/", response_model=List[TransactionSchema])
+def get_transactions_for_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
+
+    transactions = db.query(Transaction).filter(Transaction.owner_id == user_id).all()
+    return transactions
+
+@app.delete("/api/users/{user_id}/transactions/{transaction_id}/")
+def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(get_db)):
+    del_transaction = db.query(Transaction).filter(Transaction.owner_id == user_id, Transaction.id == transaction_id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
+    
+    db.delete(del_transaction)
+    db.commit()
+
+    return {
+        "message": " Transaction successfully deleted.",
+        "user": {user_id},
+        "transaction": {transaction_id}
+    }
+
+
+"""
+TODO
+-> Endpoints (GET)
+- Listar usuarios
+- Listar quantidade de transações de x usuario
+- Listar dinheiro total de usuario (method SUM())
+
+
+TODO
+-> Endpoints (DELETE)
+- Deletar transação
+- Remover usuario
+-
+
+
+"""
