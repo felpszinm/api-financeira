@@ -199,6 +199,4 @@ TODO
 -> Endpoints (DELETE)
 - Deletar transação ✅
 - Remover usuario ✅
-
-http://localhost:8002/api/users/1/transactions/1/
 """
