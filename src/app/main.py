@@ -19,8 +19,11 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+#===============================================================#
 ### =============== Modelos do Banco de Dados =============== ###
-#* São as tabelas do seu banco.
+#===============================================================#
+
+# São as tabelas do seu banco.
 
 #* Criando a classe de usuario (Tabela de usuários no banco)
 class User(Base):
@@ -58,9 +61,6 @@ class Category(Base):
     # Relacionamento: uma categoria pode ter várias transações.
     transactions = relationship("Transaction", back_populates="category")
 
-
-
-
 #* Criando as tabelas do banco:
 Base.metadata.create_all(bind=engine)
 
@@ -71,7 +71,11 @@ def get_db():
     finally:
         db.close() # Fecha a sessão do banco
 
+
+#===================================================================#
 ### =============== Modelos de Validação de Dados =============== ###
+#===================================================================#
+
 # Estrutura dos dados que a API recebe e envia (Pydantic)
 
 #* Define o tipo dos dados pra 'User':
@@ -89,11 +93,13 @@ class UserSchema(BaseModel):
         #* Faz a manipulação de dados para JSON
         orm_mode = True
 
+
 #* Define o tipo dos dados pra Transaction:
 class TransactionCreate(BaseModel):
     description: str
     amount: float
-    owner_id: int
+    owner_id: int # Sincroniza com usuario
+    category_id: int # Sincroniza com a categoria
 
 #* Formata os dados (Saída) de Transação para a API:
 class TransactionSchema(BaseModel):
@@ -101,18 +107,36 @@ class TransactionSchema(BaseModel):
     description: str
     amount: float
     created_at: datetime
-    owner_id: int
+    owner_id: int # Sincroniza com usuario
+    category_id: int # Sincroniza com a categoria
 
     class Config:
         #* Faz a manipulação de dados para JSON
         orm_mode = True
 
+
+#* Define os tipos de dados pra Category:
+class CategoryCreate(BaseModel):
+    name: str
+
+#* Formata os dados (Saída) das Categorias para a API:
+class CategorySchema(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        #* Faz a manipulação de dados para JSON
+        orm_mode = True
+
+
 # ==================================================== #  
 ### =============== Endpoints da API =============== ###
 # ==================================================== # 
 
-## === Endpoints para o recurso 'User' === ##
 
+#===========================================#
+## === Endpoints para o recurso 'User' === ##
+#===========================================#
 #* Define o Endpoint para pegar as informações de todos usuarios (GET)
 @app.get("/api/users/", response_model=List[UserSchema])
 def get_user(db: Session = Depends(get_db)):
@@ -156,8 +180,9 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
         "user": user_id
     }
 
-
+#===================================================#
 ## === Endpoints para o recurso 'Transactions' === ##
+#===================================================#
 
 @app.get("/api/transactions/", response_model=List[TransactionSchema])
 def get_all_transactions(db: Session = Depends(get_db)):
@@ -181,6 +206,17 @@ def get_transactions_for_user(user_id: int, db: Session = Depends(get_db)):
 #* Define o Endpoint para criar uma nova transação (POST)
 @app.post("/api/users/{user_id}/transactions/", response_model=TransactionSchema)
 def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db)):
+    user_owner = db.query(User).filter(User.id == transaction.owner_id).first()
+    if not user_owner:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    category_exists = db.query(Category).filter(Category.id == category_id).first()
+
+
+
     # Criando uma nova transação
     db_transaction = Transaction(description=transaction.description, amount=transaction.amount, owner_id=transaction.owner_id)
     db.add(db_transaction) # Adiciona a transação ao banco
@@ -213,3 +249,35 @@ def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(ge
         "user": user_id,
         "transaction": transaction_id
     }
+
+#=================================================#
+## === Endpoints para o recurso 'Categories' === ##
+#=================================================#
+
+@app.get("/api/categories/", response_model=List[CategorySchema])
+def get_all_categories(db: Session = Depends(get_db)):
+    categories = db.query(Category).all()
+    if not categories:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+    return categories
+
+@app.post("/api/categories/", response_model=CategorySchema)
+def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+    # Valida se categoria ja existe no banco através do nome.
+    existing_category = db.query(Category).filter(Category.name == category.name).first()
+
+    if existing_category:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Category already registered"
+        )
+    
+    # Criando uma nova categoria
+    db_category = Category(name=category.name)
+    db.add(db_category) # Adiciona a categoria ao banco.
+    db.commit() # Salva o banco
+    db.refresh(db_category) # Atualiza a categoria dentro do banco
+    return db_category
