@@ -39,9 +39,27 @@ class Transaction(Base):
     description = Column(String, index=True)
     amount = Column(Float)
     created_at = Column(DateTime, default=datetime.now)
+    
     #? Chave estrangeira que conecta a transação ao usuário:
     owner_id = Column(Integer, ForeignKey("users.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"))
+
+    #? Relacionametos
     owner = relationship("User", back_populates="transactions")
+    category = relationship("Category", back_populates="transactions")
+
+
+#* Criando a classe de Categorias (Tabela de categorias no banco)
+class Category(Base):
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+
+    # Relacionamento: uma categoria pode ter várias transações.
+    transactions = relationship("Transaction", back_populates="category")
+
+
+
 
 #* Criando as tabelas do banco:
 Base.metadata.create_all(bind=engine)
@@ -195,19 +213,3 @@ def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(ge
         "user": user_id,
         "transaction": transaction_id
     }
-
-
-"""
-TODO
--> Endpoints (GET)
-- Listar usuarios ✅
-- Listar quantidade de transações de x usuario ✅
-- Listar todas as transações ✅
-- Listar dinheiro total de usuario (method SUM())
-
-
-TODO
--> Endpoints (DELETE)
-- Deletar transação ✅
-- Remover usuario ✅
-"""
