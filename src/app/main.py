@@ -19,6 +19,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+
 #===============================================================#
 ### =============== Modelos do Banco de Dados =============== ###
 #===============================================================#
@@ -64,6 +65,20 @@ class Category(Base):
 #* Criando as tabelas do banco:
 Base.metadata.create_all(bind=engine)
 
+
+#=============================================#
+### =============== Funções =============== ###
+#=============================================#
+
+#* Função de validar filtragens dentro do banco e retornar para a API
+def raise_http_exception(parameter, message: str):
+    if not parameter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=message
+        )
+
+
 def get_db():
     db = SessionLocal() # Classe do Alchemy (Cria uma nova sessão do banco)
     try:
@@ -98,7 +113,6 @@ class UserSchema(BaseModel):
 class TransactionCreate(BaseModel):
     description: str
     amount: float
-    owner_id: int # Sincroniza com usuario
     category_id: int # Sincroniza com a categoria
 
 #* Formata os dados (Saída) de Transação para a API:
@@ -141,16 +155,14 @@ class CategorySchema(BaseModel):
 @app.get("/api/users/", response_model=List[UserSchema])
 def get_user(db: Session = Depends(get_db)):
     users = db.query(User).all()
-    if not users:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Users not founded")
+    raise_http_exception(users, message="Users not founded")
     return users
 
 #* Define o Endpoint para pegar as informações de 1 User (GET)
 @app.get("/api/users/{user_id}/", response_model=UserSchema)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User not found")
+    raise_http_exception(user, message="User not found")
     return user
 
 
@@ -171,8 +183,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.delete("/api/users/{user_id}/")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    raise_http_exception(user, message="User not found")
     db.delete(user) # Deleta a informação
     db.commit() # Salva no banco
     return {
@@ -187,17 +198,15 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 @app.get("/api/transactions/", response_model=List[TransactionSchema])
 def get_all_transactions(db: Session = Depends(get_db)):
     transactions = db.query(Transaction).all()
-    if not transactions:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transactions not founded")
+    raise_http_exception(transactions, message="Transactions not founded")
     return transactions
 
 #* Define o Endpoint para pegar as informações de 1 User (GET)
 @app.get("/api/users/{user_id}/transactions/", response_model=List[TransactionSchema])
 def get_transactions_for_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first() # Valida se o user_id é igual ao User.id do banco
-    if not user:
-        # Se caso user não ser encontrado retorna um erro
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    raise_http_exception(user, message="User not found")
+    
     transactions = db.query(Transaction).filter(Transaction.owner_id == user_id).all()
     # Valida se o transaction_id é igual ao Transaction.id do banco
     return transactions
@@ -205,20 +214,21 @@ def get_transactions_for_user(user_id: int, db: Session = Depends(get_db)):
 
 #* Define o Endpoint para criar uma nova transação (POST)
 @app.post("/api/users/{user_id}/transactions/", response_model=TransactionSchema)
-def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db)):
-    user_owner = db.query(User).filter(User.id == transaction.owner_id).first()
-    if not user_owner:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+def create_transaction(user_id: int, transaction: TransactionCreate, db: Session = Depends(get_db)):
+    user_owner = db.query(User).filter(User.id == user_id).first()
+    raise_http_exception(user_owner, message="User not found")
     
-    category_exists = db.query(Category).filter(Category.id == category_id).first()
-
-
+    category_exists = db.query(Category).filter(Category.id == transaction.category_id).first()
+    raise_http_exception(category_exists, message="Category not found")
 
     # Criando uma nova transação
-    db_transaction = Transaction(description=transaction.description, amount=transaction.amount, owner_id=transaction.owner_id)
+    db_transaction = Transaction(
+        description=transaction.description,
+        amount=transaction.amount,
+        owner_id=user_id,
+        category_id=transaction.category_id
+    )
+
     db.add(db_transaction) # Adiciona a transação ao banco
     db.commit() # Salva os dados da transação no banco
     db.refresh(db_transaction) # Atualiza a transação criada no Banco
@@ -234,11 +244,8 @@ def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(ge
         Transaction.id == transaction_id
         ).first()
 
-    if not del_transaction:
-        # Se caso algum dos id's não ser encontrado retorna um erro
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Transaction not found or does not belong to the specified user."
+    raise_http_exception(del_transaction, 
+        message="Transaction not found or does not belong to the specified user."
         )
     
     db.delete(del_transaction) # Deleta a informação
@@ -257,11 +264,8 @@ def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(ge
 @app.get("/api/categories/", response_model=List[CategorySchema])
 def get_all_categories(db: Session = Depends(get_db)):
     categories = db.query(Category).all()
-    if not categories:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
-        )
+    raise_http_exception(categories, message="Category not found")
+
     return categories
 
 @app.post("/api/categories/", response_model=CategorySchema)
@@ -279,5 +283,5 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     db_category = Category(name=category.name)
     db.add(db_category) # Adiciona a categoria ao banco.
     db.commit() # Salva o banco
-    db.refresh(db_category) # Atualiza a categoria dentro do banco
+    db.refresh(db_category) # Atualiza a categoria dentro do banco 
     return db_category
