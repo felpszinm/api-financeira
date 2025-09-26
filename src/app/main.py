@@ -147,7 +147,6 @@ class CategorySchema(BaseModel):
 ### =============== Endpoints da API =============== ###
 # ==================================================== # 
 
-
 #===========================================#
 ## === Endpoints para o recurso 'User' === ##
 #===========================================#
@@ -285,3 +284,18 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     db.commit() # Salva o banco
     db.refresh(db_category) # Atualiza a categoria dentro do banco 
     return db_category
+
+@app.delete("/api/categories/{category_id}/")
+def delete_category(category_id: int, db: Session = Depends(get_db)):
+    
+    del_category = db.query(Category).filter(Category.id == category_id).first()
+    raise_http_exception(del_category, 
+        message="Category doesn't exist."
+        )
+    
+    db.delete(del_category)
+    db.commit()
+
+    return {
+        "message": " Category successfully deleted.",
+    }
