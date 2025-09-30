@@ -34,7 +34,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
 
     #* define a relação entre as tabelas User e Transaction no SQLAlchemy.
-    transactions = relationship("Transaction", back_populates="owner")
+    transactions = relationship("Transaction", back_populates="owner", cascade="all, delete-orphan")
 
 #* Criando a classe de Transação (Tabela de transações no banco)
 class Transaction(Base):
@@ -45,8 +45,9 @@ class Transaction(Base):
     created_at = Column(DateTime, default=datetime.now)
     
     #? Chave estrangeira que conecta a transação ao usuário:
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    #* Se caso algum usuario ou categoria for excluida, todas transações são excluidas que tenham conexão.
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"))
 
     #? Relacionametos
     owner = relationship("User", back_populates="transactions")
@@ -60,7 +61,7 @@ class Category(Base):
     name = Column(String, unique=True, index=True, nullable=False)
 
     # Relacionamento: uma categoria pode ter várias transações.
-    transactions = relationship("Transaction", back_populates="category")
+    transactions = relationship("Transaction", back_populates="category", cascade="all, delete-orphan")
 
 #* Criando as tabelas do banco:
 Base.metadata.create_all(bind=engine)
@@ -380,5 +381,5 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {
-        "message": " Category successfully deleted.",
+        "message": "Category successfully deleted.",
     }
