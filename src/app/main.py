@@ -186,7 +186,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     return user
 
 #* Define o Endpoint da criação de User (POST)
-@app.post("/api/users/", response_model=UserSchema)
+@app.post("/api/users/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     # Verifica se o usuario ja existe no banco através do email.
     existing_user = db.query(User).filter(User.email == user.email).first()
@@ -216,7 +216,7 @@ def update_user(user_id: int, user: UserPatch, db: Session = Depends(get_db)):
     db.refresh(db_user) # Atualiza o 'User' no Banco
     return db_user
 
-@app.delete("/api/users/{user_id}/")
+@app.delete("/api/users/{user_id}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -252,7 +252,7 @@ def get_transactions_for_user(user_id: int, db: Session = Depends(get_db)):
 
 
 #* Define o Endpoint para criar uma nova transação (POST)
-@app.post("/api/users/{user_id}/transactions/", response_model=TransactionSchema)
+@app.post("/api/users/{user_id}/transactions/", response_model=TransactionSchema, status_code=status.HTTP_201_CREATED)
 def create_transaction(user_id: int, transaction: TransactionCreate, db: Session = Depends(get_db)):
     user_owner = db.query(User).filter(User.id == user_id).first()
     if not user_owner:
@@ -298,7 +298,7 @@ def update_transaction(user_id: int, transaction_id: int, transaction: Transacti
 
 
 #* Define o Endpoint para deletar uma transação de um usuario (DELETE)
-@app.delete("/api/users/{user_id}/transactions/{transaction_id}/")
+@app.delete("/api/users/{user_id}/transactions/{transaction_id}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transaction(user_id:int, transaction_id:int, db: Session = Depends(get_db)):
     # Filtra a query do banco pelo id do usuario e id de transação igual ao do Banco.
     del_transaction = db.query(Transaction).filter(
@@ -335,7 +335,7 @@ def get_all_categories(db: Session = Depends(get_db)):
     return categories
 
 #* Define o Endpoint para criar uma categoria (POST)
-@app.post("/api/categories/", response_model=CategorySchema)
+@app.post("/api/categories/", response_model=CategorySchema, status_code=status.HTTP_201_CREATED)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     # Valida se categoria ja existe no banco através do nome.
     existing_category = db.query(Category).filter(Category.name == category.name).first()
@@ -370,7 +370,7 @@ def update_category(category_id: int, category: CategoryPatch, db: Session = Dep
     return db_category
 
 #* Define o Endpoint para deletar uma categoria (DELETE)
-@app.delete("/api/categories/{category_id}/")
+@app.delete("/api/categories/{category_id}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_category(category_id: int, db: Session = Depends(get_db)):
     
     del_category = db.query(Category).filter(Category.id == category_id).first()
