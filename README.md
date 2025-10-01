@@ -3,59 +3,73 @@
 ## Métodos já criados ##
 
 *Users*
--> Coletar info. Usuario (GET)
--> Coletar info todos os users (GET)
--> Criação de Usuario (POST)
--> Deletar um usuário (DELETE)
+-> Coletar info. Usuario (GET)✅
+-> Coletar info todos os users (GET)✅
+-> Criação de Usuario (POST)✅
+-> Atualizar Usuario (PATCH)✅
+-> Deletar um usuário (DELETE)✅
 
 *Transactions*
--> Coletar todas as transações (GET)
--> Coletar transações de um Usuario (GET)
--> Criação de Transação (POST)
--> Exclusão de uma transação de um Usuario (DELETE)
+-> Coletar todas as transações (GET)✅
+-> Coletar transações de um Usuario (GET)✅
+-> Criação de Transação (POST)✅
+-> Atualizar Transação de um usuário (PATCH)✅
+-> Exclusão de uma transação de um Usuario (DELETE)✅
 
 *Categories*
--> Coletar todas as categorias (GET)
--> Criação de uma categoria (POST)
--> Exclusão de uma categoria (DELETE)
+-> Coletar todas as categorias (GET)✅
+-> Criação de uma categoria (POST)✅
+-> Atualizar uma Categoria (PATCH)✅
+-> Exclusão de uma categoria (DELETE)✅
 
+*Métodos do Código*
+-> *ON DELETE CASCADE* na definição da Foreign Key no SQLAlchemy para deletar as transações ligadas automaticamente ou bloquear a exclusão✅
+-> Ajustar Status Codes (Tirar a função de raise_http_exception) ✅
 
-## Métodos para se criar ##
+---
 
-*Users*
--> Atualizar as informações de um usuário (PUT)
+## 🎯 Roteiro de Desenvolvimento e Prioridades
 
-*Transactions*
--> Atualizar uma transação de um usuário (PUT)
+Este é o plano de ação para elevar a API ao nível profissional, categorizado por prioridade de implementação.
 
-*Categories*
--> Atualizar uma categoria (PUT)
+### 🥇 Prioridade Alta (Essencial para Produção e Estabilidade)
 
-## Novas classes a se adicionar ##
+Foco em **Segurança, Testes e Arquitetura** base, garantindo que o sistema seja confiável e robusto.
 
-*Categories*
--> Criar uma tabela no banco para que cada transação possa ser classificada
-Exemplos: Alimentação, Transporte, Moradia, Lazer, Salário
--> Faça CRUD nela
+1.  **Segurança da Autenticação:** Implementar **OAuth 2.0 / JWT Bearer Token** para proteger *todas* as rotas de dados sensíveis.
+2.  **Arquitetura Profissional:** Finalizar a separação da lógica em camadas: **Serviços** (lógica de negócio) e **Repositórios** (acesso ao DB), usando a Injeção de Dependência do FastAPI.
+3.  **Testes de Integração:** Implementar o `TestClient` do FastAPI para testar **100% das rotas** principais (CRUD de Usuário e Transação).
+4.  **Tratamento de Erros:** Criar *handlers* globais para capturar e padronizar as respostas de erro HTTP (e.g., `404 Not Found`, `401 Unauthorized`).
 
-*Accounts*
--> Criar uma tabela de contas bancárias / carteiras.
--> Onde cada nova transação sera vinculada a essa conta.
--> Usuario também pode ter saldos separados.
+### 🥈 Prioridade Média (Novas Funcionalidades e Regras de Negócio)
 
-## Oportunidades de Melhoria ##
+Foco em adicionar os recursos necessários para um aplicativo financeiro real.
 
->> Implementar a função PUT/PATCH (Update):
--> adicionar os endpoints PUT (substituição completa) ou PATCH (atualização parcial) para 'User', 'Transaction' e 'Category'.
+1.  **[Novo] Classe e Tabela `Accounts`:** Criar o modelo e a estrutura de dados para **Contas Bancárias/Carteiras** (ex: Saldo Separado).
+2.  **[Novo] Vínculo de Transações:** Modificar o modelo `Transaction` para vincular obrigatoriamente a uma **Conta** específica (Chave Estrangeira).
+3.  **Regra de Saldo e Consistência:** Implementar a lógica de cálculo de **saldo atual** por conta e a validação para evitar transações de despesa (`EXPENSE`) que gerem saldo negativo (se for a regra de negócio).
+4.  **Testes de Unidade:** Escrever testes Pytest para a **lógica de Serviço/Negócio** (cálculos financeiros, validação de saldo), utilizando *Mocks*.
 
->> Melhorar a função delete_category:
--> usar o *ON DELETE CASCADE* na definição da Foreign Key no SQLAlchemy para deletar as transações ligadas automaticamente ou bloquear a exclusão
-se houver transações vinculadas.
+### 🥉 Prioridade Baixa (Melhorias de UX/DX e Refinamento)
 
->> Ajustar Status Codes (Tirar a função de raise_http_exception):
--> Usar os IFS diretamente nos raise HTTPException.
--> Métodos POST devem retornar = status.HTTP_201_CREATED
--> Métodos DELETE devem retornar = status.HTTP_204_NO_CONTENT
+Foco em usabilidade da API (Developer Experience) e qualidade de código.
 
->> Filtragem e Paginação nas TRANSACTIONS:
--> Adicionar parâmetros de consulta (*query parameters*) para *skip, limit* (para paginação) e filtragem para data ou valor.
+1.  **[Melhoria] Paginação:** Adicionar **Query Parameters** (`skip` e `limit`) às rotas de listagem de Transações.
+2.  **[Melhoria] Filtragem Avançada:** Adicionar **Query Parameters** para filtrar `Transactions` por **intervalo de datas** e **valor**.
+3.  **Qualidade de Código:** Configurar **Black** (formatação) e **Flake8/Pylint** (análise estática) para garantir a consistência e padrões de código.
+4.  **Rate Limiting:** Implementar um mecanismo de limite de requisições por IP/Usuário para evitar *Brute Force* e *DDoS*.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+* **Linguagem:** Python
+* **Framework:** FastAPI
+* **Testes:** Pytest, unittest.mock
+* **ORM:** SQLAlchemy
+* **Banco de Dados:** PostgreSQL
+
+## 🧪 Rodando os Testes
+
+# Rodar todos os testes com relatório de cobertura
+pytest --cov=./ --cov-report=html
