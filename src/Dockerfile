@@ -1,5 +1,4 @@
-# Usa uma imagem Python leve como base.
-# 'slim' significa que ela tem apenas o necessário, resultando em um tamanho menor.
+
 FROM python:3.12.11-slim
 
 # Define o diretório de trabalho dentro do contêiner
