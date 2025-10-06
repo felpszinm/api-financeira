@@ -2,7 +2,6 @@
 
 Esta é uma API RESTful robusta para gerenciamento financeiro, construída com Python, FastAPI e SQLAlchemy. A API permite o controle de usuários, transações e categorias, fornecendo uma base sólida para o desenvolvimento de aplicações financeiras completas.
 
----
 ## Funcionalidades
 
 - **Gerenciamento de Usuários:**
@@ -16,7 +15,6 @@ Esta é uma API RESTful robusta para gerenciamento financeiro, construída com P
 - **Gerenciamento de Categorias:**
   - Criar, ler, atualizar e deletar categorias para organizar as transações.
 
----
 ## Tecnologias Utilizadas
 
 - **Python 3.12**
@@ -27,7 +25,6 @@ Esta é uma API RESTful robusta para gerenciamento financeiro, construída com P
 - **Docker & Docker Compose:** Para containerização e orquestração da aplicação e do banco de dados.
 - **Uvicorn:** Servidor ASGI para rodar a aplicação FastAPI.
 
----
 ## Arquitetura do Projeto
 
 A API segue uma arquitetura limpa e modular, separando as responsabilidades em diferentes componentes:
@@ -38,7 +35,6 @@ A API segue uma arquitetura limpa e modular, separando as responsabilidades em d
 - `schemas.py`: Define os schemas do Pydantic, que são usados para validação de dados de entrada e saída da API.
 - `database.py`: Gerencia a conexão com o banco de dados e as sessões.
 
----
 ## Como Começar
 
 Siga os passos abaixo para configurar e rodar a aplicação em seu ambiente local.
@@ -75,7 +71,6 @@ Siga os passos abaixo para configurar e rodar a aplicação em seu ambiente loca
    - **Swagger UI:** `http://localhost:8002/docs`
    - **ReDoc:** `http://localhost:8002/redoc`
 
----
 ## Endpoints da API
 
 A seguir, uma descrição detalhada dos endpoints disponíveis.
@@ -135,12 +130,10 @@ A seguir, uma descrição detalhada dos endpoints disponíveis.
 }
 ```
 
----
 ## Ambiente de Desenvolvimento
 
 Este projeto inclui uma configuração de [Dev Container](https://code.visualstudio.com/docs/remote/containers), que permite um ambiente de desenvolvimento consistente e isolado. Para utilizá-lo, abra o projeto no VS Code com a extensão [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) instalada e execute o comando `Reopen in Container`.
 
----
 ## Testes
 
 Os testes para esta API ainda não foram implementados. No entanto, a estrutura para os testes está pronta e pode ser encontrada no diretório `src/tests/`. Para executar os testes (quando implementados), utilize o Pytest:
